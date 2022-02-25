@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Server {
 
@@ -17,7 +18,7 @@ public class Server {
         Socket socket = null;
 
         try{
-            serversocket = new ServerSocket(8080);
+            serversocket = new ServerSocket(8082);
             while(true){
 
                 socket = serversocket.accept();
@@ -45,6 +46,8 @@ public class Server {
         }
     }
 
+    static ArrayList<String> listaMensajes = new ArrayList<String>();
+
     public static class ServerHandler extends Thread{
 
         Socket socket;
@@ -57,25 +60,26 @@ public class Server {
 
             ObjectInputStream ois = null;
             ObjectOutputStream oos = null;
-            ArrayList<String> listaMensajes = new ArrayList<String>();
-
 
             try{
 
                 ois = new ObjectInputStream(socket.getInputStream());
                 oos = new ObjectOutputStream(socket.getOutputStream());
 
-
+                oos.writeObject(listaMensajes);
 
                 String username = (String) ois.readObject();
 
                 String message = "";
+                int indexMessage = -1;
 
-                while(!message.equals("bye")){
+                while(!message.equals("message: bye")){
 
-                    Boolean isMessage = message.startsWith("message:");
+                    List<String> listaMensajesClientesActual = obtenerMensaje(indexMessage, listaMensajes);
+                    oos.writeObject(listaMensajesClientesActual);
+
                     message = (String) ois.readObject();
-
+                    Boolean isMessage = message.startsWith("message:");
 
                     if(isMessage){
                         // Generar hora y pasar a un formato que se puede imprimir
@@ -83,13 +87,15 @@ public class Server {
                         Date horaActual = new Date(currentTimeMillis);
                         SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
                         String dateString = formatter.format(horaActual);
-                        String sendMessage = "<" + username + ">" + "[ " + dateString + " ] escribió: <" + message + ">";
+                        String sendMessage = "<" + username + ">" + "[ " + dateString + " ]: <" + message + ">";
 
+                        listaMensajes.add(sendMessage);
                         oos.writeObject(sendMessage);
 
-
+                        indexMessage =(int) ois.readObject();
+                        System.out.println(indexMessage);
                     }else{
-                        if(message.equals("bye")){
+                        if(message.equals("message: bye")){
                             oos.writeObject("Good bye");
                         }else{
                             oos.writeObject("Error!");
@@ -123,6 +129,20 @@ public class Server {
 
 
         }
+
+    }
+
+    public static List<String> obtenerMensaje (int index, ArrayList<String> mensajes){
+
+        List<String> listamsg = new ArrayList<String>();
+
+        if(!mensajes.isEmpty() && index != -1){
+            for(int i = index; i < mensajes.size(); i++){
+                listamsg.add(mensajes.get(i));
+            }
+        }
+
+        return listamsg;
 
     }
 

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Cliente {
@@ -15,10 +16,21 @@ public class Cliente {
         ObjectInputStream ois = null;
         Scanner scanner = new Scanner(System.in);
 
+
         try {
-            socket = new Socket("localhost", 8080);
+            socket = new Socket("localhost", 8082);
              oos = new ObjectOutputStream(socket.getOutputStream());
              ois = new ObjectInputStream(socket.getInputStream());
+
+
+            ArrayList<String> mensajesAntiguos = (ArrayList<String>) ois.readObject();
+            ArrayList<String> listaMensajes = new ArrayList<String>();
+
+            if(!mensajesAntiguos.isEmpty()){
+                for(String mensajes: mensajesAntiguos){
+                    System.out.println(mensajes);
+                }
+            }
 
             System.out.print("Escribe tu nombre de usuario:");
             String username = scanner.nextLine();
@@ -26,15 +38,30 @@ public class Cliente {
 
             String message = "";
 
-            while(!message.equals("bye")) {
+            while(!message.equals("message: bye")) {
+
+                ArrayList<String> mensajesActuales = (ArrayList<String>) ois.readObject();
+                if(!mensajesActuales.isEmpty()){
+                    for(String mensajes: mensajesActuales){
+                        System.out.println(mensajes);
+                        listaMensajes.addAll(mensajesActuales);
+                    }
+                }
 
                 System.out.print("Escribe el mensaje -> ");
-                message = scanner.nextLine();
-                oos.writeObject("message: "+ message);
+                message = "message: "+ scanner.nextLine();
+                oos.writeObject(message);
 
                 String respuesta = (String) ois.readObject();
                 System.out.println("Mensaje ->" + respuesta);
+
+                listaMensajes.add(message);
+                oos.writeObject(listaMensajes.lastIndexOf(message));
+
+
             }
+
+            System.out.println("Good bye");
 
 
         } catch (IOException | ClassNotFoundException e) {
